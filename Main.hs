@@ -1,6 +1,7 @@
 module Main where
 
 import Data.List (intercalate)
+import Control.Exception
 
 data Task = Task { text :: String
 								 , isCompleted :: Bool
@@ -16,8 +17,16 @@ instance Show Task where
 	show (Task t True) = "[X] " ++ t
 	show (Task t False) = "[ ] " ++ t
 
+saveFilePath = "tasks.save"
+
 showTasks :: Tasks -> String
 showTasks ts = intercalate "\n" $ map (\(i, t) -> (show i) ++ (show t)) (zip [0..] ts)
+
+tasksToSaveString :: Tasks -> String
+tasksToSaveString = undefined
+
+saveStringToTasks :: String -> Tasks
+saveStringToTasks = undefined
 
 addTask :: Tasks -> String -> Result
 addTask ts text = Result "success" ((Task text False):ts)
@@ -64,11 +73,16 @@ processCommands ts = do
 	putStrLn "\t4 N - complete task"
 	cmd <- getLine
 	let r = processCommand ts cmd
-	if result r == "exit" then return () else do
+	if result r == "exit" then do
+		writeFile saveFilePath (tasksToSaveString ts)
+	 	return ()
+	else do
 		putStrLn $ result r
 		putStrLn ""
 		processCommands $ tasks r
 
 main :: IO ()
 main = do
-	processCommands []
+	saved <- readFile saveFilePath `catch`
+		\e -> const (return "") (e :: IOException)
+	processCommands $ saveStringToTasks saved
