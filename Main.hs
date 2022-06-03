@@ -48,7 +48,7 @@ completeTask ts n
 		where
 			left = take n ts
 			right = drop (n+1) ts
-			task = head $ take (n+1) ts
+			task = ts!!n
 			newTasks = left ++ (Task (text task) True):right
 
 processCommand :: Tasks -> String -> Result
