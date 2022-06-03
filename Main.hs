@@ -2,6 +2,7 @@ module Main where
 
 import Data.List (intercalate)
 import Control.Exception
+import System.IO
 
 data Task = Task { text :: String
 								 , isCompleted :: Bool
@@ -23,10 +24,10 @@ showTasks :: Tasks -> String
 showTasks ts = intercalate "\n" $ map (\(i, t) -> (show i) ++ (show t)) (zip [0..] ts)
 
 tasksToSaveString :: Tasks -> String
-tasksToSaveString = undefined
+tasksToSaveString ts = intercalate "\n" $ map (\t -> (show $ isCompleted t) ++ " " ++ text t) ts
 
 saveStringToTasks :: String -> Tasks
-saveStringToTasks = undefined
+saveStringToTasks s = map (\l -> Task (unwords $ tail $ words l) (read (head $ words l) :: Bool)) (lines s)
 
 addTask :: Tasks -> String -> Result
 addTask ts text = Result "success" ((Task text False):ts)
@@ -52,29 +53,26 @@ completeTask ts n
 
 processCommand :: Tasks -> String -> Result
 processCommand ts cmd
-	| n == 0 = Result "exit" ts
-	| n == 1 = Result (showTasks ts) ts
-	| n == 2 = addTask ts inp
-	| n == 3 = deleteTask ts (read inp)
-	| n == 4 = completeTask ts (read inp)
-	| otherwise = Result "wrong option" ts
+	| n == "exit" = Result "exit" ts
+	| n == "show" = Result (showTasks ts) ts
+	| n == "add" = addTask ts inp
+	| n == "delete" = deleteTask ts (read inp)
+	| n == "complete" = completeTask ts (read inp)
+ 	| n == "help" = Result "SHASHLIKI TODO LIST\n\texit - save and exit\n\tshow - task list\n\tadd TEXT - add task\n\tdelete N - delete task\n\tcomplete N - complete task" ts
+	| otherwise = Result "'help' for getting help" ts
 	where
 		args = words cmd
-		n = read $ head args
+		n = head args
 		inp = unwords $ tail args
 
 processCommands :: Tasks -> IO ()
 processCommands ts = do
-	putStrLn "SHASHLIKI TODO LIST"
-	putStrLn "\t0 - save and exit"
-	putStrLn "\t1 - task list"
-	putStrLn "\t2 TEXT - add task"
-	putStrLn "\t3 N - delete task"
-	putStrLn "\t4 N - complete task"
 	cmd <- getLine
 	let r = processCommand ts cmd
 	if result r == "exit" then do
-		writeFile saveFilePath (tasksToSaveString ts)
+		saveHandle <- openFile saveFilePath WriteMode
+		hPutStr saveHandle (tasksToSaveString ts)
+		hClose saveHandle
 	 	return ()
 	else do
 		putStrLn $ result r
@@ -83,6 +81,7 @@ processCommands ts = do
 
 main :: IO ()
 main = do
-	saved <- readFile saveFilePath `catch`
-		\e -> const (return "") (e :: IOException)
+	putStrLn "'help' for getting help"
+	saveHandle <- openFile saveFilePath ReadWriteMode
+	saved <- hGetContents' saveHandle
 	processCommands $ saveStringToTasks saved
