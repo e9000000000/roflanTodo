@@ -1,10 +1,10 @@
 module Main where
 
-import System.Exit (exitSuccess)
+import Data.List (intercalate)
 
 data Task = Task { text :: String
 								 , isCompleted :: Bool
-								 } deriving (Show)
+								 }
 
 type Tasks = [Task]
 
@@ -12,36 +12,43 @@ data Result = Result { result :: String
 										 , tasks :: Tasks
 										 } deriving (Show)
 
+instance Show Task where
+	show (Task t True) = "[X] " ++ t
+	show (Task t False) = "[ ] " ++ t
+
+showTasks :: Tasks -> String
+showTasks ts = intercalate "\n" $ map (\(i, t) -> (show i) ++ (show t)) (zip [0..] ts)
+
 addTask :: Tasks -> String -> Result
-addTask tasks text = Result "success" ((Task text False):tasks)
+addTask ts text = Result "success" ((Task text False):ts)
 
 deleteTask :: Tasks -> Int -> Result
-deleteTask tasks n
-	| n >= 0 && n < length tasks = Result "success" newTasks
-	| otherwise = Result "wrong task number" tasks
+deleteTask ts n
+	| n >= 0 && n < length ts = Result "success" newTasks
+	| otherwise = Result "wrong task number" ts
 		where
-			left = take n tasks
-			right = drop (n+1) tasks
+			left = take n ts
+			right = drop (n+1) ts
 			newTasks = left ++ right
 
 completeTask :: Tasks -> Int -> Result
-completeTask tasks n
-	| n >= 0 && n < length tasks = Result "success" newTasks
-	| otherwise = Result "wrong task number" tasks
+completeTask ts n
+	| n >= 0 && n < length ts = Result "success" newTasks
+	| otherwise = Result "wrong task number" ts
 		where
-			left = take n tasks
-			right = drop (n+1) tasks
-			task = head $ take (n+1) tasks
+			left = take n ts
+			right = drop (n+1) ts
+			task = head $ take (n+1) ts
 			newTasks = left ++ (Task (text task) True):right
 
 processCommand :: Tasks -> String -> Result
-processCommand tasks cmd
-	| n == 0 = Result "exit" tasks
-	| n == 1 = Result (show tasks) tasks
-	| n == 2 = addTask tasks inp
-	| n == 3 = deleteTask tasks (read inp)
-	| n == 4 = completeTask tasks (read inp)
-	| otherwise = Result "wrong option" tasks
+processCommand ts cmd
+	| n == 0 = Result "exit" ts
+	| n == 1 = Result (showTasks ts) ts
+	| n == 2 = addTask ts inp
+	| n == 3 = deleteTask ts (read inp)
+	| n == 4 = completeTask ts (read inp)
+	| otherwise = Result "wrong option" ts
 	where
 		args = words cmd
 		n = read $ head args
